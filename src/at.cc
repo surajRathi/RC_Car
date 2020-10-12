@@ -236,13 +236,14 @@ bool AT::init_send_data(uint8_t conn_num, size_t length) {
     static char cmd[] = "AT+CIPSEND=" "_" "," "00000" EOL;
 
     cmd[11] = '0' + conn_num;
-    char *end = cmd + 11 + 5;
+    char *end = cmd + 11 + 1 + 5;
     while (length > 0) {
-        *end = length % 10;
+        *end = length % 10 + '0';
         --end;
         length /= 10;
     }
     serial.write(cmd);
 
-    return wait_for_str(">", 100, false);
+
+    return wait_for_str(">", 100, false); //|| (Serial.println("no >..."), false);
 }

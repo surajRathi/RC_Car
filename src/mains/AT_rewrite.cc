@@ -65,9 +65,11 @@ void loop() {
         esp.flags &= ~esp.flag::data;
 
         static const char *data = "hello world";
-        if (esp.init_send_data(esp.avail_data.conn_num, strlen(data)))
+        if (esp.init_send_data(esp.avail_data.conn_num, strlen(data))) {
             esp.serial.write(data);
-        else
+            if (!esp.wait_for_str("SEND OK" EOL, 100, false))
+                Serial.println("Some write error...");
+        } else
             Serial.println("Cant send data :(");
     }
 
