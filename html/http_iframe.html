@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Control</title>
+</head>
+<body>
+<iframe id="state" src="/state"></iframe>
+
+<p>Click the button to change the value of the src attribute in the iframe.</p>
+
+<button onclick="send_up()">UP</button>
+
+<script>
+    function send_up() {
+        document.getElementById("state").src = "/send?10";
+    }
+</script>
+<h1>Hello world</h1>
+</body>
+</html>
