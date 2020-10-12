@@ -54,8 +54,10 @@
 
     // Set digital pins LOW
     for (int i = 0; i <= 53; i++) {
-        pinMode(i, OUTPUT);
+        pinMode(i, INPUT);
+        // pinMode(i, OUTPUT);
         digitalWrite(i, LOW);
+        // digitalWrite(i, LOW);
     }
 
     while (true) {
