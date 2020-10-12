@@ -269,7 +269,8 @@ void send_state(char conn_num) {
             EOL
     };
 
-    size_t header_len = strlen(resp_header[0]) + strlen(resp_header[1]) + num_digits(http_iframe_html_len);
+    size_t header_len = strlen(resp_header[0]) + strlen(resp_header[1]) + num_digits(content_len);
+    // size_t header_len = strlen(resp_header[0]) + strlen(resp_header[1]) + num_digits(http_iframe_html_len);
 
     write_cipsend(conn_num, header_len);
 
