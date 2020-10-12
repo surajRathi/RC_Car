@@ -12,12 +12,28 @@ namespace at {
     public:
         bool connected{false}, have_ip{false};
         bool connections[4] = {false};
-        char ip_addr[16] = "", mac_addr[18] = "";
+        bool last_status{true}, pending{false};
 
+        enum flag {
+            con0 = 1u << 0u,
+            con1 = 1u << 1u,
+            con2 = 1u << 2u,
+            con3 = 1u << 3u,
+            data = 1u << 4u
+        };
+        // Bytes 0-3 Connection state change ; Byte 4 incoming data
+        uint8_t flags = 0x0;
+
+        // To be used if and only if byte 4 of flag is set
+        struct avail_data {
+            uint8_t conn_num;
+            size_t length;
+        } avail_data{0, 0};
+
+        char ip_addr[16] = "", mac_addr[18] = "";
 
         HardwareSerial &serial;
 
-        // TODO: Is 0 a valid pin on arduino
         explicit AT(HardwareSerial &dev, uint8_t reset_pin) : _rst(reset_pin),
                                                               serial{dev} {}
 
@@ -56,13 +72,15 @@ namespace at {
             return -1;
         }
 
-        bool last_status, pending;
-
         int _timedRead(unsigned long timeout);
 
         bool cmd_ok(const char *cmd, unsigned long timeout, bool echo);
 
-        bool start_server(/*byte port = 80*/);
+        bool start_server(/*uint8_t port = 80*/);
+
+        bool init_send_data(uint8_t conn_num, size_t length);
+
+        bool close_conn(uint8_t num);
     };
 }
 #endif //CAR_AT_H

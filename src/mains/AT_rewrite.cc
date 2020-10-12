@@ -19,30 +19,21 @@ void setup() {
     }
     Serial.println("Ready");
 
-    delay(500);
-    while (esp.tick());
-
     if (!esp.connected) {
-        Serial.println("Trying to connect to wifi.");
-        delay(5000);
-        while (esp.tick());
-        if (!esp.connected) {
+        auto end = millis() + 5000;
+        while ((!esp.connected || !esp.have_ip) && millis() < end)
+            while (esp.tick());
+
+        if (!esp.connected) { // TODO: AT+CWJAP
             Serial.println("Cant connect");
             stop();
-        }
-    }
-    Serial.println("Connected");
-
-    if (!esp.have_ip) {
-        Serial.println("Trying to get IP");
-
-        delay(2000);
-        while (esp.tick());
-        if (!esp.have_ip) {
+        } else if (!esp.have_ip) {
             Serial.println("Can't get IP");
             stop();
         }
     }
+
+    Serial.println("Wifi Connected");
     Serial.println("Have an IP");
 
     if (!esp.start_server()) {
@@ -57,12 +48,30 @@ void setup() {
     Serial.print("Listening on ");
     Serial.print(esp.ip_addr);
     Serial.println(":80.");
+
 }
 
 void loop() {
-    // while (esp.tick());
+    while (esp.tick());
+    esp.flags &= ~0b1111; // Clear new connection flags
+
+    if (esp.flags & esp.flag::data) {
+        int ch;
+        for (size_t i = 0; i < esp.avail_data.length; ++i) {
+            while ((ch = esp.serial.read()) == -1);
+            Serial.write(ch);
+        }
+
+        esp.flags &= ~esp.flag::data;
+
+        static const char *data = "hello world";
+        if (esp.init_send_data(esp.avail_data.conn_num, strlen(data)))
+            esp.serial.write(data);
+        else
+            Serial.println("Cant send data :(");
+    }
 
     int ch;
-    while ((ch = esp.serial.read()) != -1) Serial.write(ch);
+    // while ((ch = esp.serial.read()) != -1) Serial.write(ch);
     while ((ch = Serial.read()) != -1) Serial.write(ch), esp.serial.write(ch);
 }
