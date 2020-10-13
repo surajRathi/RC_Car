@@ -65,6 +65,11 @@ void loop() {
             Serial.write(ch);
         }*/
 
+        Serial.print("Received ");
+        Serial.print(esp.avail_data.length);
+        Serial.print(" bytes on ");
+        Serial.println(esp.avail_data.conn_num);
+
         size_t remaining = esp.avail_data.length; // TODO: Enforce
         if (sse & at::flag::from_conn_num(esp.avail_data.conn_num)) {
             // TODO
@@ -78,18 +83,20 @@ void loop() {
                 // Mop up extra data and send req error code.
             }
             if (remaining == 0) {/*TODO*/}
+            Serial.println(req_methods[meth]);
 
             char path[20] = "/";
             read = esp.serial.readBytesUntil(' ', path, min(sizeof(path) - 1, remaining));
             remaining -= read;
             path[read] = '\0';
             if (remaining == 0) {/*TODO*/}
+            Serial.println(path);
 
             static const char *http[] = {"HTTP/", "/"};
             auto[index, bytes_read] = esp.wait_for_strs(http, 100, min(remaining, strlen("HTTP/")));
             remaining -= bytes_read;
             if (index != 0) {
-                Serial.println("Invalid method.");
+                Serial.println("NO HTTP.");
                 // Mop up extra data and send req error code.
             }
             if (remaining == 0) {/*TODO*/}
@@ -102,6 +109,7 @@ void loop() {
                 // Mop up extra data and send req error code.
             }
             if (remaining == 0) {/*TODO*/}
+            Serial.println(httpvers[vers_index]);
 
             // Parse other useful headers...
         }
