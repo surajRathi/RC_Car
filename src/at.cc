@@ -211,7 +211,7 @@ int AT::_timedRead(unsigned long timeout) {
     return -1;
 }
 
-bool AT::cmd_ok(const char *cmd, unsigned long timeout, bool echo = false) {
+bool AT::cmd_ok(const char *cmd, unsigned long timeout, bool echo) {
     serial.write(cmd);
     return wait_for_str("OK" EOL, timeout, echo);
 }
@@ -246,4 +246,31 @@ bool AT::init_send_data(uint8_t conn_num, size_t length) {
 
 
     return wait_for_str(">", 100, false); //|| (Serial.println("no >..."), false);
+}
+
+AT::wait_for_str_ret AT::wait_for_str(const char *str, unsigned long timeout, size_t max_chars, bool echo) {
+    size_t index = 0;
+    const size_t len = strlen(str);
+
+    auto end = millis() + timeout;
+    size_t read = 0;
+
+    int ch;
+    while (millis() < end && read < (max_chars - 1)) {
+        if ((ch = serial.read()) != -1) {
+            ++read;
+            if (echo) Serial.write(ch);
+            if (ch == str[index]) {
+                ++index;
+                if (index == len)
+                    return {true, read};
+            } else {
+                if (ch != str[index]) index = 0;
+                else index = 1;
+            }
+        } else {
+            delay(10);
+        }
+    }
+    return {false, read};
 }
