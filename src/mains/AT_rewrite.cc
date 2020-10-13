@@ -51,8 +51,11 @@ void setup() {
 
 }
 
+uint8_t sse = 0x0;
+
 void loop() {
     while (esp.tick());
+    sse &= ~esp.flags; // If connection state changed, reset the sse state
     esp.flags &= ~0b1111; // Clear new connection flags
 
     if (esp.flags & esp.flag::data) {
