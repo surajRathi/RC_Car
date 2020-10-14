@@ -19,7 +19,7 @@ bool AT::reset() {
     pinMode(_rst, INPUT);
 
     // Wait for ready
-    return wait_for_str(ready, 1000, false)
+    return wait_for_str(ready, 5000, false)
            && cmd_ok("ATE0" EOL, 100, false)
            && cmd_ok("AT+CWMODE=1" EOL, 100, false);
 }
@@ -245,7 +245,7 @@ bool AT::init_send_data(uint8_t conn_num, size_t length) {
     serial.write(cmd);
 
 
-    return wait_for_str(">", 100, false); //|| (Serial.println("no >..."), false);
+    return wait_for_str(">", 500, false); //|| (Serial.println("no >..."), false);
 }
 
 AT::wait_for_str_ret AT::wait_for_str(const char *str, unsigned long timeout, size_t max_chars, bool echo) {
