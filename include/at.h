@@ -8,7 +8,7 @@
 namespace at {
 
     namespace flag {
-        enum flag {
+        enum flag : unsigned {
             // These flags represent a change in conn state
             // conn -> close or close -> conn
             con0 = 1u << 0u,
@@ -61,7 +61,7 @@ namespace at {
         uint8_t flags = 0x0;
 
         // To be used if and only if byte 4 of flag is set
-        // Means we can now read lenght bytes from device
+        // Means we can now read length bytes from device
         struct {
             uint8_t conn_num;
             size_t length;

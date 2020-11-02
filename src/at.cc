@@ -88,7 +88,7 @@ bool AT::tick() {
     if (!serial.available()) return false;
     // Read until cmd finish, EOL, or timeout
 
-    switch ((Cmd) wait_for_strs(cmds, 100, false)) {
+    switch (static_cast<Cmd>(wait_for_strs(cmds, 100, false))) {
         case wifi_conn:
             connected = true;
             have_ip = false;
@@ -225,27 +225,29 @@ bool AT::start_server(/*uint8_t port*/) {
 bool AT::close_conn(uint8_t num) {
     if (!connections[num]) return true;
     static char cmd[] = "AT+CIPCLOSE=" "_" EOL;
-    cmd[12] = '0' + num;
+    cmd[12] = static_cast<char>('0' + num);
     connections[num] = cmd_ok(cmd, 100, false);
     return connections[num];
 }
 
 bool AT::init_send_data(uint8_t conn_num, size_t length) {
-    if (!connections[conn_num]) return false;
-    if (length >= 100000) return false;
+    if (!connections[conn_num]) {Serial.println("Not connected"); return false;}
+    if (length >= 100000) {Serial.println("Bad Lenght");  Serial.println(length); return false;}
     static char cmd[] = "AT+CIPSEND=" "_" "," "00000" EOL;
 
-    cmd[11] = '0' + conn_num;
+    cmd[11] = static_cast<char>('0' + conn_num);
     char *end = cmd + 11 + 1 + 5;
     while (length > 0) {
-        *end = length % 10 + '0';
+        *end = static_cast<char>('0' + length % 10);
         --end;
         length /= 10;
     }
+    Serial.println(cmd);
+
     serial.write(cmd);
 
 
-    return wait_for_str(">", 500, false); //|| (Serial.println("no >..."), false);
+    return wait_for_str(">", 500, false) || (Serial.println("no >..."), false);
 }
 
 AT::wait_for_str_ret AT::wait_for_str(const char *str, unsigned long timeout, size_t max_chars, bool echo) {
