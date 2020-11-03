@@ -95,11 +95,11 @@ void loop() {
     sse &= ~esp.flags; // If connection state changed, reset the sse state
     esp.flags &= ~(0b1111u); // Clear new connection flags
 
-    if (esp.flags & at::flag::data) {
+    if (esp.flags & at::flag::data) { // Received Data
         int ch;
 
-        char path[20];
-        char host[20];
+        char path[40];
+        char host[40];
         char accept[40];
         const char *method = nullptr;
         const char *http_version = nullptr;
@@ -112,7 +112,7 @@ void loop() {
         size_t remaining = esp.avail_data.length; // TODO: Enforce
         if (sse & at::flag::from_conn_num(esp.avail_data.conn_num)) {
             // TODO
-            Serial.println("SSE RECV DATA");
+            Serial.println("Why am i receiveing data from the SSE conn?");
 
             while (remaining > 1 /*0*/) {
                 if ((ch = esp._timedRead(100)) == -1) {
@@ -184,33 +184,22 @@ void loop() {
                 }
             }
 
-            Serial.println("Request: ");
-            Serial.print(req_methods[meth]);
-            Serial.print(' ');
+            Serial.print("Requested: ");
             Serial.print(path);
-            Serial.print(" HTTP/");
-            Serial.print(httpvers[vers_index]);
-            if (host[0] != '\0') {
-                Serial.print("Host: ");
-                Serial.println(host);
-            }
             if (accept[0] != '\0') {
-                Serial.print("Accept: ");
-                Serial.println(accept);
+                Serial.print(" and wants ");
+                Serial.print(accept);
             }
+            Serial.println(".");
 
             esp.flags &= ~at::flag::data;
 
-            Serial.println();
-
-            // Request /
-            // Request /send?___
-            // Request /stream
             serve_request(path, accept, http_version);
 
             Serial.println();
         }
     }
+
     int ch;
     // while ((ch = esp.serial.read()) != -1) Serial.write(ch);
     while ((ch = Serial.read()) != -1) Serial.write(ch), esp.serial.write(ch);
@@ -218,6 +207,8 @@ void loop() {
 
 bool serve_request(const char *path, const char *accept_methods, const char *http_version) {
     if (strcmp(path, "/") == 0) {
+        Serial.println("Serving main page.");
+
         static char *resp_header[] = {
                 "HTTP/___ 200 OK" EOL
                 "Content-Length: ", /*content_len*/
@@ -235,16 +226,12 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
         esp.serial.print(http_sse_html_len);
         esp.serial.write(resp_header[1], strlen(resp_header[1]));
         esp.serial.write(EOL EOL);
-        if (!esp.wait_for_str("SEND OK" EOL, 500, false)) {
+        if (!esp.wait_for_str("SEND OK" EOL, 800, false)) {
             Serial.println("No send OK");
             while (!esp.serial.available()) esp.serial.write(EOL);
             esp.close_conn(esp.avail_data.conn_num);
             return false;
         }
-        Serial.print("Wrote header of ");
-        Serial.print(header_len);
-        Serial.println(" bytes.");
-
 
         if (!esp.init_send_data(esp.avail_data.conn_num, http_sse_html_len)) {
             Serial.println("Cant send data :(");
@@ -252,15 +239,14 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
             return false;
         }
         esp.serial.write(http_sse_html, http_sse_html_len);
-        if (!esp.wait_for_str("SEND OK" EOL, 500, false)) {
+        if (!esp.wait_for_str("SEND OK" EOL, 800, false)) {
             Serial.println("No send OK");
             while (!esp.serial.available()) esp.serial.write(EOL);
             esp.close_conn(esp.avail_data.conn_num);
             return false;
         }
-        Serial.print("Wrote body of ");
-        Serial.print(header_len);
-        Serial.println(" bytes.");
+
+        Serial.println("Served.");
         esp.close_conn(esp.avail_data.conn_num);
 
     } else if (memcmp(path, "/send?", strlen("/send?")) == 0) {
@@ -283,8 +269,11 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
             start++;
         }
         if (neg) change *= -1;
-        Serial.println(change);
         state += change;
+
+        Serial.print("State: ");
+        Serial.print(state);
+        Serial.println(".");
 
         static char resp_header[] = {
                 "HTTP/___ 204 No Content" EOL EOL EOL
@@ -304,12 +293,14 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
             return false;
         }
         esp.close_conn(esp.avail_data.conn_num);
+        Serial.println("Replied to change");
 
         // Update all:
         for (int i = 0; i < 4; i++) {
             if (sse & at::flag::from_conn_num(i)) {
-                Serial.print("Updateing: ");
+                Serial.print("Updating: ");
                 Serial.println(i);
+
                 const char *sse_data[] = {"data: ", "\n" EOL};
                 if (!esp.init_send_data(i, num_digits(state) + strlen(sse_data[0]) + strlen(sse_data[1]))) {
                     Serial.println("Cant send data :(");
@@ -327,7 +318,7 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
 
 
     } else if (strcmp(path, "/stream") == 0 && strcmp(accept_methods, "text/event-stream") == 0) {
-        Serial.println("Received new event stream request.");
+        Serial.println("New event stream request.");
         static char *resp_header[] = {
                 "HTTP/___ 200 OK" EOL
                 "Connection: keep-alive" EOL
@@ -350,13 +341,10 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
             // esp.close_conn(esp.avail_data.conn_num);
             return false;
         }
-        Serial.print("Responded to SSE request ");
-        Serial.print(header_len);
-        Serial.println(" bytes.");
-
+        Serial.println("Served.");
         sse |= at::flag::from_conn_num(esp.avail_data.conn_num);
     } else {
-        Serial.println("Sending 404");
+        Serial.println("Serving 404");
         static char resp_header[] = {
                 "HTTP/___ 404 Not Found" EOL
                 "Connection: close" EOL EOL
@@ -374,6 +362,7 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
             while (!esp.serial.available()) esp.serial.write(EOL);
             return false;
         }
+        Serial.println("Served.");
 
         esp.close_conn(esp.avail_data.conn_num);
     }

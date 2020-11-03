@@ -92,11 +92,12 @@ bool AT::tick() {
         case wifi_conn:
             connected = true;
             have_ip = false;
+            Serial.print("Connected." EOL);
             break;
         case wifi_disconn:
             connected = false;
             have_ip = false;
-            Serial.println("Disconnected.");
+            Serial.print("Disconnected."  EOL);
             break;
 
         case got_ip:
@@ -105,11 +106,11 @@ bool AT::tick() {
 
         case ok:
             pending = false;
-            Serial.println("OK" EOL);
+            Serial.print("OK" EOL);
             break;
         case error:
             pending = false;
-            Serial.println("ERROR" EOL);
+            Serial.print("ERROR" EOL);
             break;
 
         case none:
@@ -129,14 +130,14 @@ bool AT::tick() {
             break;
 
         case recv_data:
-            avail_data.conn_num = _timedRead(100) - '0';
+            avail_data.conn_num = _timedRead(50) - '0';
             if (avail_data.conn_num < 0 || avail_data.conn_num >= 4) {
                 Serial.println("Invalid conn num.");
                 while (serial.read() != -1);
                 break;
             }
 
-            if (_timedRead(100) != ',') {
+            if (_timedRead(50) != ',') {
                 Serial.println("Recv data cant find comma.");
                 while (serial.read() != -1);
                 break;
@@ -144,7 +145,7 @@ bool AT::tick() {
 
             int ch;
             avail_data.length = 0;
-            while ((ch = _timedRead(100)) != -1) {
+            while ((ch = _timedRead(50)) != -1) {
                 if (ch == ':') break;
                 avail_data.length *= 10;
                 avail_data.length += ch - '0'; // TODO check ch range.
@@ -165,35 +166,43 @@ bool AT::tick() {
         case con_0:
             connections[0] = true;
             flags |= flag::con0;
+            Serial.println("Connected at 0");
             break;
         case con_1:
             connections[1] = true;
             flags |= flag::con1;
+            Serial.println("Connected at 1");
             break;
         case con_2:
             connections[2] = true;
             flags |= flag::con2;
+            Serial.println("Connected at 2");
             break;
         case con_3:
             connections[3] = true;
             flags |= flag::con3;
+            Serial.println("Connected at 3");
             break;
 
         case clo_0:
             connections[0] = false;
             flags &= ~flag::con0;
+            Serial.println("Disonnected at 0");
             break;
         case clo_1:
             connections[1] = false;
             flags &= ~flag::con1;
+            Serial.println("Disonnected at 1");
             break;
         case clo_2:
             connections[2] = false;
             flags &= ~flag::con2;
+            Serial.println("Disonnected at 2");
             break;
         case clo_3:
             connections[3] = false;
             flags &= ~flag::con3;
+            Serial.println("Disonnected at 3");
             break;
     }
 
@@ -255,7 +264,6 @@ bool AT::init_send_data(uint8_t conn_num, size_t length) {
         --end;
         length /= 10;
     }
-    Serial.println(cmd);
 
     serial.write(cmd);
 
