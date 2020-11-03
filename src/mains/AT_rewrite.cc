@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <stop.h>
 #include <at.h>
+#include <throttle.h>
 
 // #define gzip
 
@@ -309,6 +310,7 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
         }
         if (neg) change *= -1;
         state += change;
+        throttle::main(state);
 
         Serial.print("State: ");
         Serial.print(state);

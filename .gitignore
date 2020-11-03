@@ -3,4 +3,5 @@ CMakeListsPrivate.txt
 cmake-build-*/
 .idea
 html/*.h
+html/*.html.gz
 /CMakeLists.txt
