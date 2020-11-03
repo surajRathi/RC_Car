@@ -1,7 +1,22 @@
 #include <Arduino.h>
 #include <stop.h>
 #include <at.h>
+
+// #define gzip
+
+#ifdef gzip
+
+#include "../../html/http_sse_html_gz.h"
+
+/*auto http_sse_html_len = http_sse_html_gz_len;
+auto http_sse_html = http_sse_html_gz;*/
+unsigned int http_sse_html_len = http_sse_html_gz_len;
+unsigned char * http_sse_html = http_sse_html_gz;
+#else
+
 #include "../../html/http_sse_html.h"
+
+#endif
 
 #define EOL "\r\n"
 at::AT esp(Serial1, 22);
@@ -212,7 +227,11 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
         static char *resp_header[] = {
                 "HTTP/___ 200 OK" EOL
                 "Content-Length: ", /*content_len*/
-                EOL "Content-Type: text/html; charset=utf-8" EOL EOL EOL
+                EOL "Content-Type: text/html; charset=utf-8" EOL
+                #ifdef gzip
+                "Content-Encoding: gzip" EOL
+                #endif
+                EOL EOL
         };
         memcpy(resp_header[0] + 5, http_version, 3);
 
@@ -233,12 +252,32 @@ bool serve_request(const char *path, const char *accept_methods, const char *htt
             return false;
         }
 
-        if (!esp.init_send_data(esp.avail_data.conn_num, http_sse_html_len)) {
+        auto start = http_sse_html;
+        auto len = http_sse_html_len;
+
+        while (len > 2000) {
+            if (!esp.init_send_data(esp.avail_data.conn_num, 2000)) {
+                Serial.println("Cant send data :(");
+                esp.close_conn(esp.avail_data.conn_num);
+                return false;
+            }
+            esp.serial.write(start, 2000);
+            if (!esp.wait_for_str("SEND OK" EOL, 800, false)) {
+                Serial.println("No send OK");
+                while (!esp.serial.available()) esp.serial.write(EOL);
+                esp.close_conn(esp.avail_data.conn_num);
+                return false;
+            }
+            start += 2000;
+            len -= 2000;
+
+        }
+        if (!esp.init_send_data(esp.avail_data.conn_num, len)) {
             Serial.println("Cant send data :(");
             esp.close_conn(esp.avail_data.conn_num);
             return false;
         }
-        esp.serial.write(http_sse_html, http_sse_html_len);
+        esp.serial.write(start, len);
         if (!esp.wait_for_str("SEND OK" EOL, 800, false)) {
             Serial.println("No send OK");
             while (!esp.serial.available()) esp.serial.write(EOL);

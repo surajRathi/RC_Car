@@ -240,12 +240,12 @@ bool AT::close_conn(uint8_t num) {
 }
 
 bool AT::init_send_data(uint8_t conn_num, size_t length) {
-    if (!connections[conn_num]) {
-        Serial.println("Not connected");
-        return false;
-    }
-    if (length >= 100000) {
-        Serial.println("Bad Lenght");
+    // if (!connections[conn_num]) {
+    //     Serial.println("Not connected");
+    //     return false;
+    // }
+    if (length >= 2048) {
+        Serial.print("Bad Length ");
         Serial.println(length);
         return false;
     }
@@ -264,10 +264,11 @@ bool AT::init_send_data(uint8_t conn_num, size_t length) {
         --end;
         length /= 10;
     }
+    Serial.println(cmd);
 
     serial.write(cmd);
 
-    return wait_for_str(">", 500, false) || (Serial.println("no >..."), false);
+    return wait_for_str(">", 1000, false) || (Serial.println("no >..."), false);
 }
 
 AT::wait_for_str_ret AT::wait_for_str(const char *str, unsigned long timeout, size_t max_chars, bool echo) {
