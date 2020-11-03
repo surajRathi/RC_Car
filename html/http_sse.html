@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Control</title>
+</head>
+<body>
+<h2 id="state">Undefined</h2>
+
+<button onclick="send_up()">UP</button>
+<button onclick="send_down()">DOWN</button>
+
+<h2 id="oc">unknown</h2>
+
+<script>
+    let out = document.getElementById("state");
+    let oc = document.getElementById("oc");
+
+    function send_up() {
+        fetch('/send?+10').then(res => {
+            return console.log(res);
+        });
+    }
+
+    function send_down() {
+        fetch('/send?-10').then(res => {
+            return console.log(res);
+        });
+    }
+
+    let source = new EventSource("/stream");
+    source.onopen = function () {
+        oc.innerText = "open";
+        console.log("OPEN");
+    };
+    source.onerror = function () {
+        oc.innerText = "err";
+        console.log("ERROR");
+    };
+    source.onmessage = function (event) {
+        console.log(event.data.size);
+        out.innerText = event.data
+    }
+
+    document.onkeydown = function (e) {
+        if (!e.repeat) {
+            switch (e.keyCode) {
+                case 37:
+                    // alert('left');
+                    break;
+                case 38:
+                    // alert('up');
+                    fetch('/send?5').then(res => {
+                        return console.log(res);
+                    });
+                    break;
+                case 39:
+                    // alert('right');
+                    break;
+                case 40:
+                    // alert('down');
+                    fetch('/send?-5').then(res => {
+                        return console.log(res);
+                    });
+                    break;
+            }
+        }
+    }
+</script>
+<h1>Hello world</h1>
+</body>
+</html>

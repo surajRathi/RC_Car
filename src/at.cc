@@ -93,7 +93,6 @@ bool AT::tick() {
             connected = true;
             have_ip = false;
             break;
-
         case wifi_disconn:
             connected = false;
             have_ip = false;
@@ -130,14 +129,15 @@ bool AT::tick() {
             break;
 
         case recv_data:
-            Serial.println("Receiving data");
             avail_data.conn_num = _timedRead(100) - '0';
             if (avail_data.conn_num < 0 || avail_data.conn_num >= 4) {
+                Serial.println("Invalid conn num.");
                 while (serial.read() != -1);
                 break;
             }
 
             if (_timedRead(100) != ',') {
+                Serial.println("Recv data cant find comma.");
                 while (serial.read() != -1);
                 break;
             }
@@ -231,13 +231,26 @@ bool AT::close_conn(uint8_t num) {
 }
 
 bool AT::init_send_data(uint8_t conn_num, size_t length) {
-    if (!connections[conn_num]) {Serial.println("Not connected"); return false;}
-    if (length >= 100000) {Serial.println("Bad Lenght");  Serial.println(length); return false;}
+    if (!connections[conn_num]) {
+        Serial.println("Not connected");
+        return false;
+    }
+    if (length >= 100000) {
+        Serial.println("Bad Lenght");
+        Serial.println(length);
+        return false;
+    }
     static char cmd[] = "AT+CIPSEND=" "_" "," "00000" EOL;
 
     cmd[11] = static_cast<char>('0' + conn_num);
+    const char *start = cmd + 11 + 1;
     char *end = cmd + 11 + 1 + 5;
-    while (length > 0) {
+    /*while (length > 0) {
+        *end = static_cast<char>('0' + length % 10);
+        --end;
+        length /= 10;
+    }*/
+    while (end > start) {
         *end = static_cast<char>('0' + length % 10);
         --end;
         length /= 10;
@@ -245,7 +258,6 @@ bool AT::init_send_data(uint8_t conn_num, size_t length) {
     Serial.println(cmd);
 
     serial.write(cmd);
-
 
     return wait_for_str(">", 500, false) || (Serial.println("no >..."), false);
 }
